@@ -1,38 +1,69 @@
-# This config was automatically generated from your source code
-# Stacks detected: deps:node:.,test:jest:
 version: 2.1
+
 orbs:
-  node: circleci/node@5
+  node: circleci/node@5.0.2  # Utilisation de l'orb Node.js pour simplifier la gestion de Node.js
+
 jobs:
-  test-node:
-    # Install node dependencies and run tests
-    executor: node/default
-    environment:
-      JEST_JUNIT_OUTPUT_DIR: ./test-results/
-    steps:
-      - checkout
-      - node/install-packages:
-          pkg-manager: npm
-      - run:
-          command: npm install jest-junit
-      - run:
-          name: Run tests
-          command: npm run test --ci --runInBand --reporters=default --reporters=jest-junit
-      - store_test_results:
-          path: ./test-results/
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
+  checkoutEtTests:
     docker:
-      - image: cimg/base:stable
+      - image: circleci/node:16  # Utilisation d'une image Docker avec Node.js 16
     steps:
-      # Replace this with steps to deploy to users
+      - checkout  # Récupération du code depuis Git
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Installer les dépendances backend
+          command: npm install
+      - run:
+          name: Exécuter les tests backend
+          command: npm test
+
+  integrationFrontend:
+    docker:
+      - image: circleci/node:16
+    steps:
+      - run:
+          name: Cloner le backend
+          command: git clone $(git config --get remote.origin.url) backend
+      - run:
+          name: Cloner le frontend
+          command: git clone <URL_REPO_FRONTEND> frontend  # ⚠️ Remplace <URL_REPO_FRONTEND> par l'URL réelle du dépôt frontend
+      - run:
+          name: Installer les dépendances frontend
+          command: |
+            cd frontend
+            npm install
+      - run:
+          name: Construire le frontend
+          command: |
+            cd frontend
+            npm run build
+      - run:
+          name: Préparer le backend pour servir le frontend
+          command: |
+            mkdir -p backend/public
+            cp -r frontend/build/* backend/public/
+      - persist_to_workspace:  # Sauvegarde le backend pour la job suivante
+          root: .
+          paths:
+            - backend
+
+  deploiement:
+    docker:
+      - image: circleci/node:16
+    steps:
+      - attach_workspace:
+          at: .  # Récupère le backend modifié
+      - run:
+          name: Vérifier que le build frontend est bien intégré
+          command: ls -Rl backend/public/
+
 workflows:
-  build-and-test:
+  version: 2
+  deploy_pipeline:
     jobs:
-      - test-node
-    # - deploy:
-    #     requires:
-    #       - test-node
+      - checkoutEtTests
+      - integrationFrontend:
+          requires:
+            - checkoutEtTests
+      - deploiement:
+          requires:
+            - integrationFrontend
