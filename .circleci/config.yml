@@ -1,14 +1,14 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@5.0.2  # Utilisation de l'orb Node.js pour simplifier la gestion de Node.js
+  node: circleci/node@5.0.2  
 
 jobs:
   checkoutEtTests:
     docker:
-      - image: circleci/node:16  # Utilisation d'une image Docker avec Node.js 16
+      - image: circleci/node:16  
     steps:
-      - checkout  # Récupération du code depuis Git
+      - checkout  
       - run:
           name: Installer les dépendances backend
           command: npm install
@@ -25,7 +25,7 @@ jobs:
           command: git clone $(git config --get remote.origin.url) backend
       - run:
           name: Cloner le frontend
-          command: git clone <URL_REPO_FRONTEND> frontend  # ⚠️ Remplace <URL_REPO_FRONTEND> par l'URL réelle du dépôt frontend
+          command: git clone https://github.com/2231698/Laboratoire1-frontend.git frontend  
       - run:
           name: Installer les dépendances frontend
           command: |
@@ -41,7 +41,7 @@ jobs:
           command: |
             mkdir -p backend/public
             cp -r frontend/build/* backend/public/
-      - persist_to_workspace:  # Sauvegarde le backend pour la job suivante
+      - persist_to_workspace:
           root: .
           paths:
             - backend
@@ -51,7 +51,7 @@ jobs:
       - image: circleci/node:16
     steps:
       - attach_workspace:
-          at: .  # Récupère le backend modifié
+          at: .
       - run:
           name: Vérifier que le build frontend est bien intégré
           command: ls -Rl backend/public/
